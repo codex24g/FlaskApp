@@ -159,6 +159,10 @@ def index():
 
         if uploaded_file and class_name:
             try:
+                # Check and remove the training_complete.flag if it exists
+                if os.path.exists('training_complete.flag'):
+                    os.remove('training_complete.flag')
+
                 image = Image.open(uploaded_file)
                 create_folders(class_name)
                 augmented_images = augment_image(image)
@@ -188,7 +192,7 @@ def index():
                     "dietary_restrictions": json.load(open('class_names.json')).get(predicted_class_name, {}).get('dietary_restrictions', 'N/A')
                 })
 
-                # Schedule the removal of the flag file after 30 seconds
+                # Schedule the removal of the flag file after 40 seconds
                 def remove_flag():
                     time.sleep(40)
                     if os.path.exists('training_complete.flag'):
@@ -201,7 +205,7 @@ def index():
 
             except Exception as e:
                 return jsonify({"error": str(e)}), 500
-        
+
     return render_template("index4.html")
 
 @app.route("/real_time")
