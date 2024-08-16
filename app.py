@@ -64,14 +64,14 @@ def augment_image(image, count=30):
         augmented_image = datagen.flow(image, batch_size=1)[0]
         augmented_image = array_to_img(augmented_image[0])
         augmented_images.append(augmented_image)
-
+    
     return augmented_images
 
 def save_images(images, class_name):
     train_folder = os.path.join(train_dir, class_name)
     valid_folder = os.path.join(valid_dir, class_name)
     test_folder = os.path.join(test_dir, class_name)
-
+    
     for i, img in enumerate(images):
         if i < 3:
             img.save(os.path.join(test_folder, f'image_{i}.jpg'))
@@ -139,7 +139,7 @@ def retrain_model():
 
         model.save('staff_mobilenet_v2_model.h5')
 
-        # Overwrite the flag file to indicate retraining is complete
+        # Create a flag file to indicate retraining is complete
         with open('training_complete.flag', 'w') as flag_file:
             flag_file.write('Done')
 
@@ -188,11 +188,20 @@ def index():
                     "dietary_restrictions": json.load(open('class_names.json')).get(predicted_class_name, {}).get('dietary_restrictions', 'N/A')
                 })
 
+                # Schedule the removal of the flag file after 30 seconds
+                def remove_flag():
+                    time.sleep(40)
+                    if os.path.exists('training_complete.flag'):
+                        os.remove('training_complete.flag')
+
+                # Start a thread to handle flag file removal
+                Thread(target=remove_flag).start()
+
                 return response
 
             except Exception as e:
                 return jsonify({"error": str(e)}), 500
-
+        
     return render_template("index4.html")
 
 @app.route("/real_time")
@@ -231,4 +240,3 @@ def status():
 
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False, host="0.0.0.0")
- 
