@@ -64,14 +64,14 @@ def augment_image(image, count=30):
         augmented_image = datagen.flow(image, batch_size=1)[0]
         augmented_image = array_to_img(augmented_image[0])
         augmented_images.append(augmented_image)
-    
+
     return augmented_images
 
 def save_images(images, class_name):
     train_folder = os.path.join(train_dir, class_name)
     valid_folder = os.path.join(valid_dir, class_name)
     test_folder = os.path.join(test_dir, class_name)
-    
+
     for i, img in enumerate(images):
         if i < 3:
             img.save(os.path.join(test_folder, f'image_{i}.jpg'))
@@ -139,10 +139,6 @@ def retrain_model():
 
         model.save('staff_mobilenet_v2_model.h5')
 
-        # Create a flag file to indicate retraining is complete
-        with open('training_complete.flag', 'w') as flag_file:
-            flag_file.write('Done')
-
     except Exception as e:
         print(f"Error during retraining: {e}")
 
@@ -159,10 +155,6 @@ def index():
 
         if uploaded_file and class_name:
             try:
-                # Check and remove the training_complete.flag if it exists
-                if os.path.exists('training_complete.flag'):
-                    os.remove('training_complete.flag')
-
                 image = Image.open(uploaded_file)
                 create_folders(class_name)
                 augmented_images = augment_image(image)
@@ -173,9 +165,8 @@ def index():
                 thread = Thread(target=background_retrain)
                 thread.start()
 
-                # Wait for the retraining to complete
-                while not os.path.exists('training_complete.flag'):
-                    time.sleep(1)
+                # Wait for a fixed period (60 seconds) before prediction
+                time.sleep(60)
 
                 # Use the preloaded model for prediction
                 model = tf.keras.models.load_model('staff_mobilenet_v2_model.h5')
@@ -191,15 +182,6 @@ def index():
                     "drink_preference": json.load(open('class_names.json')).get(predicted_class_name, {}).get('drink_preference', 'N/A'),
                     "dietary_restrictions": json.load(open('class_names.json')).get(predicted_class_name, {}).get('dietary_restrictions', 'N/A')
                 })
-
-                # Schedule the removal of the flag file after 40 seconds
-                def remove_flag():
-                    time.sleep(40)
-                    if os.path.exists('training_complete.flag'):
-                        os.remove('training_complete.flag')
-
-                # Start a thread to handle flag file removal
-                Thread(target=remove_flag).start()
 
                 return response
 
@@ -237,10 +219,9 @@ def predict():
 
 @app.route("/status", methods=["GET"])
 def status():
-    if os.path.exists('training_complete.flag'):
-        return jsonify({"status": "ready"})
-    else:
-        return jsonify({"status": "training"})
+    # Dummy status check since training_complete.txt has been removed
+    return jsonify({"status": "ready"})
 
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False, host="0.0.0.0")
+ 
